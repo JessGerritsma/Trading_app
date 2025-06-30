@@ -6,7 +6,7 @@ python-multipart==0.0.6
 # Database and ORM
 sqlalchemy==2.0.23
 alembic==1.13.0
-psycopg2-binary==2.9.9
+# psycopg2-binary==2.9.9  # Commented out - using SQLite initially
 
 # Trading and Financial
 python-binance==1.0.19

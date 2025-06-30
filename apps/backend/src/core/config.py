@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     
     # Trading Configuration
     default_symbol: str = "BTCUSDT"
-    trading_pairs: List[str] = ["BTCUSDT", "ETHUSDT", "ADAUSDT"]
+    trading_pairs: str = "BTCUSDT,ETHUSDT,ADAUSDT"
     max_position_size: float = 0.1
     max_daily_loss: float = 0.05
     stop_loss_percentage: float = 0.02
@@ -64,8 +64,18 @@ class Settings(BaseSettings):
     enable_real_time_charts: bool = True
     
     # CORS
-    cors_origins: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     allow_credentials: bool = True
+    
+    @property
+    def trading_pairs_list(self) -> List[str]:
+        """Parse trading_pairs string into a list"""
+        return [pair.strip() for pair in self.trading_pairs.split(",") if pair.strip()]
+    
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Parse cors_origins string into a list"""
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
     
     class Config:
         env_file = ".env"

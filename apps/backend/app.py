@@ -32,7 +32,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=settings.allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -116,7 +116,7 @@ async def get_prices():
             raise HTTPException(status_code=503, detail="Binance client not configured")
         
         prices = []
-        for symbol in settings.trading_pairs:
+        for symbol in settings.trading_pairs_list:
             try:
                 ticker = binance_client.get_symbol_ticker(symbol=symbol)
                 prices.append({
