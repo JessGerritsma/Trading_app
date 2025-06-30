@@ -1,0 +1,18 @@
+{
+  "templater-obsidian:obsidian/08_Templates/update_state.md": [
+    {
+      "modifiers": [
+        "Alt"
+      ],
+      "key": "S"
+    }
+  ],
+  "templater-obsidian:obsidian/08_Templates/project_session.md": [
+    {
+      "modifiers": [
+        "Alt"
+      ],
+      "key": "S"
+    }
+  ]
+}

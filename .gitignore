@@ -38,3 +38,7 @@ Thumbs.db
 # OS-specific
 ehthumbs.db
 Icon?
+
+.obsidian/workspace.json
+.obsidian/plugins/*
+!.obsidian/plugins/obsidian-git
