@@ -11,6 +11,8 @@ import {
   BarChart, 
   Bar 
 } from 'recharts';
+import TradingBotWorkflow from './trading-bot-workflow';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 
 
 const TRADING_API_URL = 'http://localhost:8000';
@@ -250,7 +252,7 @@ const TradingDashboard: React.FC = () => {
         </div>
 
         {/* Main Content Grid */}
-        /*this is where i am up to i just removed for now due to the erros */
+       
         
         <div>
           {/* Portfolio Balances */}
@@ -447,4 +449,19 @@ const TradingDashboard: React.FC = () => {
   );
 };
 
-export default TradingDashboard;
+const App: React.FC = () => {
+  return (
+    <Router>
+      <nav className="bg-gray-900 text-white p-4 flex gap-4">
+        <Link to="/" className="hover:underline">Dashboard</Link>
+        <Link to="/workflow" className="hover:underline">Bot Workflow</Link>
+      </nav>
+      <Routes>
+        <Route path="/" element={<TradingDashboard />} />
+        <Route path="/workflow" element={<TradingBotWorkflow />} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;

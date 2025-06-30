@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, GitBranch, Target, Code, TrendingUp, MessageSquare, CheckCircle, Clock, AlertCircle, Plus, Save, RotateCcw, Bot } from 'lucide-react';
 
+// Define a type for conversation items
+interface ConversationItem {
+  id: number;
+  type: string;
+  content: string;
+  timestamp: string;
+}
+
 const TradingBotWorkflow = () => {
   const [currentPhase, setCurrentPhase] = useState('mvp-backtesting');
   const [activeSession, setActiveSession] = useState('2025-06-30');
@@ -10,7 +18,7 @@ const TradingBotWorkflow = () => {
     blockers: [],
     nextSteps: []
   });
-  const [aiConversation, setAiConversation] = useState([]);
+  const [aiConversation, setAiConversation] = useState<ConversationItem[]>([]);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [sessionNotes, setSessionNotes] = useState('');
 
@@ -71,16 +79,19 @@ Please provide specific, actionable guidance for the current development phase. 
     setCurrentPrompt(context);
   };
 
-  const addToConversation = (type, content) => {
-    setAiConversation(prev => [...prev, {
-      id: Date.now(),
-      type,
-      content,
-      timestamp: new Date().toLocaleTimeString()
-    }]);
+  const addToConversation = (type: string, content: string) => {
+    setAiConversation((prev: ConversationItem[]) => [
+      ...prev,
+      {
+        id: Date.now(),
+        type,
+        content,
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ]);
   };
 
-  const handleQuickPrompt = (prompt) => {
+  const handleQuickPrompt = (prompt: string) => {
     setCurrentPrompt(prompt);
     addToConversation('user', prompt);
   };
