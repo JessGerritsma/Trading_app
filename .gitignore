@@ -1,31 +1,40 @@
-# OS-specific
-.DS_Store
-Thumbs.db
+# Node.js
+node_modules/
+apps/frontend/node_modules/
+apps/frontend/dist/
+apps/frontend/.next/
+apps/frontend/.vite/
 
-# Obsidian settings (optional to ignore)
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# Environment variables
+.env
+.env.*
+
+# Docker
+*.pid
+*.sock
+docker-compose.override.yml
+
+# VS Code
+.vscode/
+
+# Obsidian junk (optional)
 .obsidian/workspace.json
 .obsidian/cache
 .obsidian/plugins/*/data.json
 
-# Python/Node/Dev stuff
-__pycache__/
-*.pyc
-node_modules/
-.env
+# System files
+.DS_Store
+Thumbs.db
 
-# VSCode or other IDE
-.vscode/
-
-# Data and model outputs (optional)
-*.csv
-*.json
-*.log
-*.pkl
-*.h5
-*.ckpt
-*.pt
-*.onnx
-
-# Optional: ignore results or heavy folders
-06_Data/
-07_Results/
+# OS-specific
+ehthumbs.db
+Icon?
