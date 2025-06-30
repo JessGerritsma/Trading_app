@@ -17,8 +17,7 @@ build/
 # Environment variables
 .env
 .env.*
-
-# Docker
+*.pycocker
 *.pid
 *.sock
 docker-compose.override.yml

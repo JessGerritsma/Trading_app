@@ -1,26 +1,43 @@
-version: '3.8'
 services:
   backend:
-    build: ./docker/backend
-    volumes:
-      - ./apps/backend:/app
+    build: ./apps/backend
     ports:
       - "8000:8000"
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-    depends_on:
-      - ollama
+   
   frontend:
-    build: ./docker/frontend
-    volumes:
-      - ./apps/frontend:/app
+    build: ./apps/frontend
     ports:
       - "3000:3000"
-  ollama:
-    image: ollama/ollama
-    volumes:
-      - ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
-volumes:
-  ollama_data:
+
+
+#services:
+#  backend:
+#    build: ./apps/backend
+#    ports:
+#      - "8000:8000"
+#    environment:
+#      - PYTHONPATH=/app
+#    volumes:
+#      - ./apps/backend:/app
+#    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+#    
+#  frontend:
+#    build: ./apps/frontend
+#    ports:
+#      - "3000:3000"
+#    volumes:
+#      - ./apps/frontend:/app
+#      - /app/node_modules
+#    environment:
+#      - CHOKIDAR_USEPOLLING=true
+#      
+  # We'll add Ollama later
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+      
+# volumes:
+#   ollama_data:
