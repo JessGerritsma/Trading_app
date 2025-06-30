@@ -74,7 +74,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 783.5
   },
   "right": {
     "id": "f202be36cbcfbf41",
@@ -158,21 +158,48 @@
       "canvas:Create new canvas": false,
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
-      "command-palette:Open command palette": false
+      "command-palette:Open command palette": false,
+      "templater-obsidian:Templater": false,
+      "obsidian-git:Open Git source control": false
     }
   },
-  "active": "6cdfdcf2ed000634",
+  "active": "7f7c8e79eac1888a",
   "lastOpenFiles": [
-    "08_Templates/update_state.md",
-    "08_Templates",
-    "07_Results",
-    "06_Data",
-    "05_Code",
-    "04_Research",
-    "03_AI_Insights",
-    "02_Progress_Updates",
-    "01_Idea_Log",
-    "setup.py",
-    "code/packages/shared/index.ts"
+    "06_Research/backtesting_approaches.md",
+    "obsidian/07_Ideas/ui_concepts.md",
+    "obsidian/07_Ideas/feedback_from_ai.md",
+    "obsidian/07_Ideas/feature_ideas.md",
+    "obsidian/07_Ideas",
+    "obsidian/06_Research/links_to_papers.md",
+    "obsidian/06_Research/ideas_from_other_bots.md",
+    "obsidian/06_Research/backtesting_approaches.md",
+    "obsidian/06_Research",
+    "obsidian/05_Code/notes_on_trading_bot_logic.md",
+    "obsidian/05_Code/api_integration_plan.md",
+    "obsidian/05_Code",
+    "obsidian/04_Logs/trade_analysis_log.md",
+    "obsidian/04_Logs/2025-06-30_session.md",
+    "obsidian/04_Logs",
+    "obsidian/03_Prompts/prompt_chain_templates.md",
+    "obsidian/03_Prompts/claude_prompt_templates.md",
+    "obsidian/03_Prompts/chatgpt_prompt_templates.md",
+    "obsidian/03_Prompts",
+    "obsidian/02_Strategies/momentum_strategy_v1.md",
+    "obsidian/02_Strategies/mean_reversion_v1.md",
+    "obsidian/02_Strategies",
+    "obsidian/01_Architecture/system_design.md",
+    "obsidian/01_Architecture/data_pipeline.md",
+    "obsidian/01_Architecture/agent_workflow.md",
+    "obsidian/01_Architecture",
+    "obsidian/00_Overview/README.md",
+    "obsidian/00_Overview",
+    "obsidian/08_Templates/update_state.md",
+    "obsidian/08_Templates/update_state.js",
+    "obsidian/08_Templates",
+    "01_Architecture/agent_workflow.md",
+    "03_Prompts/prompt_chain_templates.md",
+    "current_state.md",
+    "01_Architecture/system_design.md",
+    "01_Architecture/data_pipeline.md"
   ]
 }
