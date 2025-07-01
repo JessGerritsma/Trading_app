@@ -13,7 +13,7 @@ import subprocess
 from src.core.config import settings
 from src.core.database import get_db, create_tables, init_db
 from src.models import Trade, Strategy, MarketData, AIDecision
-from services.llm_service import LLMService
+from src.services.llm_service import LLMService
 from src.services.automated_trading import AutomatedTradingService
 
 # Load environment variables
@@ -67,7 +67,7 @@ except Exception as e:
 
 # Initialize Automated Trading service
 try:
-    automated_trading_service = AutomatedTradingService(llm_service) if llm_service else None
+    automated_trading_service = AutomatedTradingService(llm_service, settings.trading_pairs_list) if llm_service else None
     logger.info("Automated trading service initialized")
 except Exception as e:
     logger.error(f"Failed to initialize automated trading service: {e}")
@@ -84,8 +84,8 @@ async def startup_event():
             s.connect(("localhost", 11434))
             s.close()
         except Exception:
-            # Start Ollama server if not running
-            subprocess.Popen(["ollama", "serve"])
+            # Just log a warning, do not try to start Ollama in Docker
+            logger.warning("Ollama is not running on localhost:11434. Please start it manually on the host.")
         # Initialize database
         init_db()
         logger.info("Application startup completed successfully")
