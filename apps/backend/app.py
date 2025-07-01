@@ -8,6 +8,8 @@ import logging
 from typing import Optional
 from dotenv import load_dotenv
 import subprocess
+import json
+import glob
 
 # Import our new modules
 from src.core.config import settings
@@ -513,18 +515,63 @@ async def get_trading_insights(context: dict):
         logger.error(f"Insights generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Insights generation failed: {str(e)}")
 
+# Utility: Summarize markdown files (first N lines or a short summary)
+def summarize_markdown_files(folder, max_lines=10):
+    summary = []
+    for md_file in glob.glob(f"{folder}/**/*.md", recursive=True):
+        try:
+            with open(md_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                summary.append(f"# {md_file}\n" + ''.join(lines[:max_lines]))
+        except Exception:
+            continue
+    return '\n---\n'.join(summary)
+
+# Utility: Append a note to a markdown file
+def append_to_markdown(file_path, note):
+    with open(file_path, 'a', encoding='utf-8') as f:
+        f.write(f"\n\n{note}\n")
+
+# Utility: Summarize recent trades (last N)
+def summarize_trades(db, n=5):
+    try:
+        trades = db.query(Trade).order_by(Trade.timestamp.desc()).limit(n).all()
+        return '\n'.join([
+            f"{t.timestamp}: {t.symbol} {t.side} {t.size}@{t.price_enter} Reason: {t.reasoning}" for t in trades
+        ])
+    except Exception:
+        return "No recent trades."
+
 @app.post("/chat")
-async def chat_with_llm(request: Request):
-    """Chat with the LLM, maintaining context"""
+async def chat_with_llm(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     message = data.get("message", "")
     context = data.get("context", [])
     if not llm_service:
         raise HTTPException(status_code=503, detail="LLM service not configured")
-    # context is a list of {user, ai} dicts
     history = [(m["user"], m["ai"]) for m in context if m.get("user") and m.get("ai")]
+    # Summarize Obsidian vault
+    obsidian_summary = summarize_markdown_files("obsidian", max_lines=8)
+    # Summarize recent trades
+    trades_summary = summarize_trades(db, n=5)
+    # Compose prompt
+    history_str = '\n'.join([f'User: {u}\nAI: {a}' for u,a in history])
+    prompt = f"""
+You have access to the following project data:
+
+## Obsidian Vault Summary:
+{obsidian_summary}
+
+## Recent Trades:
+{trades_summary}
+
+## Conversation History:
+{history_str}
+
+User: {message}
+AI:"""
     try:
-        response = await llm_service._call_ollama(llm_service._build_history_prompt(history, message))
+        response = await llm_service._call_ollama(prompt)
     except Exception as e:
         response = None
     return {"response": response or "No response from LLM."}
@@ -629,32 +676,42 @@ async def get_ai_decisions(
         logger.error(f"Error getting AI decisions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get AI decisions: {str(e)}")
 
+SETTINGS_PATH = 'apps/backend/data/settings.json'
+def load_settings():
+    try:
+        with open(SETTINGS_PATH, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return {
+            "auto_trade": True,
+            "ai_confidence_threshold": 75,
+            "trading_strategy": "Balanced",
+            "max_daily_trades": 10,
+            "position_size": 2,
+            "trade_notifications": True,
+            "price_alerts": True,
+            "ai_recommendations": False,
+            "email_notifications": True,
+            "push_notifications": True,
+            "theme": "Dark Mode",
+            "chart_theme": "Professional",
+            "compact_view": False,
+            "stop_loss_default": 5,
+            "take_profit_default": 10,
+            "daily_loss_limit": 3,
+            "risk_tolerance": "Moderate"
+        }
+def save_settings(settings):
+    with open(SETTINGS_PATH, 'w') as f:
+        json.dump(settings, f, indent=2)
+
 @app.get("/settings")
 async def get_settings():
-    """Return all settings for the settings page."""
-    return {
-        "auto_trade": True,
-        "ai_confidence_threshold": 75,
-        "trading_strategy": "Balanced",
-        "max_daily_trades": 10,
-        "position_size": 2,
-        "trade_notifications": True,
-        "price_alerts": True,
-        "ai_recommendations": False,
-        "email_notifications": True,
-        "push_notifications": True,
-        "theme": "Dark Mode",
-        "chart_theme": "Professional",
-        "compact_view": False,
-        "stop_loss_default": 5,
-        "take_profit_default": 10,
-        "daily_loss_limit": 3,
-        "risk_tolerance": "Moderate"
-    }
+    return load_settings()
 
 @app.post("/settings")
 async def update_settings(new_settings: dict):
-    # For now, just echo back the settings (no persistence)
+    save_settings(new_settings)
     return {"success": True, "settings": new_settings}
 
 @app.get("/notifications")
