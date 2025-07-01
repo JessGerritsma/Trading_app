@@ -8,6 +8,9 @@ from binance.client import Client
 from binance.exceptions import BinanceAPIException
 import asyncio
 import logging
+from src.services.llm_service import LLMService
+from src.services.automated_trading import AutomatedTradingService
+from src.core.config import settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,11 +49,12 @@ class TradeResponse(BaseModel):
 
 # Global variables
 binance_client: Optional[Client] = None
+trading_service: Optional[AutomatedTradingService] = None
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize Binance client on startup"""
-    global binance_client
+    """Initialize Binance client and trading service on startup"""
+    global binance_client, trading_service
     
     # Get API keys from environment variables
     api_key = os.getenv("BINANCE_TESTNET_API_KEY")
@@ -72,6 +76,15 @@ async def startup_event():
         account_info = binance_client.get_account()
         logger.info("Successfully connected to Binance Testnet")
         logger.info(f"Account status: {account_info.get('accountType', 'Unknown')}")
+        
+        # Initialize LLMService and AutomatedTradingService
+        llm_service = LLMService()
+        trading_pairs = settings.trading_pairs_list
+        trading_service = AutomatedTradingService(llm_service, trading_pairs)
+        # Start real-time trading in the background if trading_service is initialized
+        if trading_service:
+            asyncio.create_task(trading_service.start_realtime_trading())
+            logger.info("Automated trading service started in background.")
         
     except Exception as e:
         logger.error(f"Failed to connect to Binance Testnet: {str(e)}")
