@@ -1,76 +1,48 @@
 // apps/frontend/src/App.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import './index.css';
 
+const Dashboard = React.lazy(() => import('./components/DashboardPage'));
+const Journal = React.lazy(() => import('./components/JournalPage'));
+const Chat = React.lazy(() => import('./components/ChatPage'));
+const Settings = React.lazy(() => import('./components/SettingsPage'));
+
+const NAV_ITEMS = [
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'journal', label: 'Journal' },
+  { key: 'chat', label: 'Chat' },
+  { key: 'settings', label: 'Settings' },
+];
+
 const App: React.FC = () => {
+  const [page, setPage] = useState('dashboard');
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          AI Trading Dashboard
-        </h1>
-        <p className="text-gray-600 mb-6">
-          Powered by Ollama LLM - Real-time market analysis
-        </p>
-        
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            System Status
-          </h2>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>Frontend: Running</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>Backend: Connected</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>AI Model: Llama 3.1</span>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">AI Trading App</h1>
+          <nav className="flex gap-4">
+            {NAV_ITEMS.map(item => (
+              <button
+                key={item.key}
+                onClick={() => setPage(item.key)}
+                className={`px-3 py-2 rounded-md font-medium ${page === item.key ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
         </div>
-        
-        <div className="mt-6 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button 
-              onClick={() => alert('Market Analysis coming soon!')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Market Analysis
-            </button>
-            <button 
-              onClick={() => alert('Trade Evaluation coming soon!')}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              Trade Evaluation
-            </button>
-            <button 
-              onClick={() => alert('Portfolio Analysis coming soon!')}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              Portfolio Analysis
-            </button>
-          </div>
-        </div>
-        
-        <div className="mt-6 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Next Steps
-          </h2>
-          <ul className="list-disc list-inside text-gray-700 space-y-2">
-            <li>Test the basic functionality</li>
-            <li>Add AI integration features</li>
-            <li>Implement automated trading</li>
-            <li>Add real-time market data</li>
-          </ul>
-        </div>
-      </div>
+      </header>
+      <main className="flex-1 max-w-7xl mx-auto w-full p-4">
+        <React.Suspense fallback={<div>Loading...</div>}>
+          {page === 'dashboard' && <Dashboard />}
+          {page === 'journal' && <Journal />}
+          {page === 'chat' && <Chat />}
+          {page === 'settings' && <Settings />}
+        </React.Suspense>
+      </main>
     </div>
   );
 };
