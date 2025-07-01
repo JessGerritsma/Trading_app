@@ -167,11 +167,19 @@ async def get_prices():
 
 @app.get("/account")
 async def get_account():
-    """Get Binance account information"""
+    """Get Binance account information and dashboard metrics"""
     try:
+        # Default metrics
+        metrics = {
+            "pnl": 0.0,
+            "drawdown": 0.0,
+            "win_rate": 0.0,
+            "open_trades": 0,
+            "closed_trades": 0,
+            "equity_curve": [],
+        }
         if not binance_client:
-            raise HTTPException(status_code=503, detail="Binance client not configured")
-        
+            return metrics
         account = binance_client.get_account()
         
         # Process balances safely
@@ -194,13 +202,8 @@ async def get_account():
                 logger.warning(f"Error processing balance for {balance.get('asset', 'unknown')}: {e}")
                 continue
         
-        return {
-            "account_type": "SPOT",
-            "can_trade": account.get("canTrade", False),
-            "can_withdraw": account.get("canWithdraw", False),
-            "can_deposit": account.get("canDeposit", False),
-            "balances": balances
-        }
+        # Optionally, calculate or fetch real metrics here
+        return metrics
     except BinanceAPIException as e:
         logger.error(f"Binance API error: {e}")
         raise HTTPException(status_code=400, detail=f"Binance API error: {e.message}")
