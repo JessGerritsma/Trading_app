@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from src.core.config import settings
 from src.core.database import get_db, create_tables, init_db
 from src.models import Trade, Strategy, MarketData, AIDecision
+from services.llm_service import LLMService
 
 # Load environment variables
 load_dotenv()
@@ -50,6 +51,17 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize Binance client: {e}")
     binance_client = None
+
+# Initialize LLM service
+try:
+    llm_service = LLMService(
+        base_url=settings.ollama_base_url,
+        model=settings.ollama_model
+    )
+    logger.info(f"LLM service initialized with model: {settings.ollama_model}")
+except Exception as e:
+    logger.error(f"Failed to initialize LLM service: {e}")
+    llm_service = None
 
 @app.on_event("startup")
 async def startup_event():
@@ -318,6 +330,113 @@ async def get_market_data(
     except Exception as e:
         logger.error(f"Error getting market data: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get market data: {str(e)}")
+
+# =============================================================================
+# AI/LLM ENDPOINTS
+# =============================================================================
+
+@app.get("/ai/status")
+async def get_ai_status():
+    """Check AI/LLM service status"""
+    try:
+        if not llm_service:
+            return {
+                "status": "not_configured",
+                "message": "LLM service not initialized"
+            }
+        
+        # Test simple prompt to check if Ollama is responding
+        test_response = llm_service._call_ollama("Hello, are you working?")
+        
+        if test_response:
+            return {
+                "status": "healthy",
+                "model": settings.ollama_model,
+                "base_url": settings.ollama_base_url,
+                "message": "LLM service is responding"
+            }
+        else:
+            return {
+                "status": "error",
+                "model": settings.ollama_model,
+                "base_url": settings.ollama_base_url,
+                "message": "LLM service not responding"
+            }
+    except Exception as e:
+        logger.error(f"AI status check failed: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+@app.post("/ai/analyze-market")
+async def analyze_market_with_ai(market_data: dict):
+    """Analyze market data using AI"""
+    try:
+        if not llm_service:
+            raise HTTPException(status_code=503, detail="LLM service not configured")
+        
+        analysis = llm_service.analyze_market_data(market_data)
+        return {
+            "success": True,
+            "analysis": analysis,
+            "model": settings.ollama_model
+        }
+    except Exception as e:
+        logger.error(f"Market analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Market analysis failed: {str(e)}")
+
+@app.post("/ai/evaluate-trade")
+async def evaluate_trade_with_ai(trade_data: dict):
+    """Evaluate trade opportunity using AI"""
+    try:
+        if not llm_service:
+            raise HTTPException(status_code=503, detail="LLM service not configured")
+        
+        evaluation = llm_service.evaluate_trade_opportunity(trade_data)
+        return {
+            "success": True,
+            "evaluation": evaluation,
+            "model": settings.ollama_model
+        }
+    except Exception as e:
+        logger.error(f"Trade evaluation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Trade evaluation failed: {str(e)}")
+
+@app.post("/ai/portfolio-analysis")
+async def analyze_portfolio_with_ai(portfolio_data: dict):
+    """Analyze portfolio performance using AI"""
+    try:
+        if not llm_service:
+            raise HTTPException(status_code=503, detail="LLM service not configured")
+        
+        analysis = llm_service.analyze_portfolio_performance(portfolio_data)
+        return {
+            "success": True,
+            "analysis": analysis,
+            "model": settings.ollama_model
+        }
+    except Exception as e:
+        logger.error(f"Portfolio analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Portfolio analysis failed: {str(e)}")
+
+@app.post("/ai/insights")
+async def get_trading_insights(context: dict):
+    """Get general trading insights from AI"""
+    try:
+        if not llm_service:
+            raise HTTPException(status_code=503, detail="LLM service not configured")
+        
+        market_context = context.get("context", "Current market conditions")
+        insights = llm_service.generate_trading_insights(market_context)
+        return {
+            "success": True,
+            "insights": insights,
+            "model": settings.ollama_model
+        }
+    except Exception as e:
+        logger.error(f"Insights generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Insights generation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
