@@ -54,10 +54,7 @@ except Exception as e:
 async def startup_event():
     """Initialize database and other startup tasks"""
     try:
-        # Create database tables
-        create_tables()
-        
-        # Initialize with default data
+        # Initialize database with tables and default data
         init_db()
         
         logger.info("Application startup completed successfully")

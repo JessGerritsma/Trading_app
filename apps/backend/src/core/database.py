@@ -42,6 +42,9 @@ def create_tables():
 def init_db():
     """Initialize database with default data"""
     try:
+        # Ensure tables are created first
+        create_tables()
+        
         db = SessionLocal()
         
         # Create default strategies

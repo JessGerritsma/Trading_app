@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, JSON
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
-
-Base = declarative_base()
+from ..core.database import Base
 
 class Strategy(Base):
     __tablename__ = "strategies"

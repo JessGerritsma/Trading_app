@@ -1,9 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 from typing import Optional
-
-Base = declarative_base()
+from ..core.database import Base
 
 class Trade(Base):
     __tablename__ = "trades"
