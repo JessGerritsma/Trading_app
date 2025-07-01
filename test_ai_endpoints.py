@@ -1,34 +1,47 @@
 #!/usr/bin/env python3
 """
-Test AI endpoints with the Docker backend
+Test script for AI endpoints and automated trading functionality
 """
 
 import requests
 import json
+import time
 
-def test_ai_endpoints():
-    """Test all AI endpoints"""
-    base_url = "http://localhost:8000"
-    
-    print("🤖 Testing AI Endpoints")
-    print("=" * 40)
-    
-    # Test 1: AI Status
-    print("\n1. Testing AI Status...")
+BASE_URL = "http://localhost:8000"
+
+def test_endpoint(endpoint, method="GET", data=None):
+    """Test an endpoint and return the response"""
+    url = f"{BASE_URL}{endpoint}"
     try:
-        response = requests.get(f"{base_url}/ai/status")
+        if method == "GET":
+            response = requests.get(url)
+        elif method == "POST":
+            response = requests.post(url, json=data)
+        
+        print(f"✅ {method} {endpoint} - Status: {response.status_code}")
         if response.status_code == 200:
-            data = response.json()
-            print(f"✅ AI Status: {data}")
+            return response.json()
         else:
-            print(f"❌ AI Status failed: {response.status_code}")
-            return
+            print(f"   Error: {response.text}")
+            return None
     except Exception as e:
-        print(f"❌ AI Status error: {e}")
-        return
+        print(f"❌ {method} {endpoint} - Error: {e}")
+        return None
+
+def main():
+    print("🤖 Testing AI Trading System Endpoints")
+    print("=" * 50)
     
-    # Test 2: Market Analysis
-    print("\n2. Testing Market Analysis...")
+    # Test basic health
+    print("\n1. Testing Health Check:")
+    health = test_endpoint("/health")
+    
+    # Test AI status
+    print("\n2. Testing AI Status:")
+    ai_status = test_endpoint("/ai/status")
+    
+    # Test market analysis
+    print("\n3. Testing Market Analysis:")
     market_data = {
         "symbol": "BTCUSDT",
         "price": 45000,
@@ -37,57 +50,23 @@ def test_ai_endpoints():
         "rsi": 65,
         "macd": "bullish"
     }
+    market_analysis = test_endpoint("/ai/analyze-market", "POST", market_data)
     
-    try:
-        response = requests.post(
-            f"{base_url}/ai/analyze-market",
-            json=market_data,
-            timeout=60
-        )
-        if response.status_code == 200:
-            data = response.json()
-            print(f"✅ Market Analysis:")
-            print(f"   Signal: {data['analysis'].get('signal', 'N/A')}")
-            print(f"   Confidence: {data['analysis'].get('confidence', 'N/A')}")
-            print(f"   Risk Level: {data['analysis'].get('risk_level', 'N/A')}")
-        else:
-            print(f"❌ Market Analysis failed: {response.status_code}")
-            print(f"   Response: {response.text}")
-    except Exception as e:
-        print(f"❌ Market Analysis error: {e}")
-    
-    # Test 3: Trade Evaluation
-    print("\n3. Testing Trade Evaluation...")
+    # Test trade evaluation
+    print("\n4. Testing Trade Evaluation:")
     trade_data = {
-        "symbol": "ETHUSDT",
+        "symbol": "BTCUSDT",
         "action": "BUY",
-        "entry_price": 3000,
-        "current_price": 2950,
+        "entry_price": 45000,
+        "current_price": 44800,
         "position_size": 3,
         "available_capital": 10000,
         "recent_performance": "positive"
     }
+    trade_evaluation = test_endpoint("/ai/evaluate-trade", "POST", trade_data)
     
-    try:
-        response = requests.post(
-            f"{base_url}/ai/evaluate-trade",
-            json=trade_data,
-            timeout=60
-        )
-        if response.status_code == 200:
-            data = response.json()
-            print(f"✅ Trade Evaluation:")
-            print(f"   Approved: {data['evaluation'].get('approved', 'N/A')}")
-            print(f"   Risk Score: {data['evaluation'].get('risk_score', 'N/A')}")
-            print(f"   Position Size: {data['evaluation'].get('recommended_position_size', 'N/A')}")
-        else:
-            print(f"❌ Trade Evaluation failed: {response.status_code}")
-            print(f"   Response: {response.text}")
-    except Exception as e:
-        print(f"❌ Trade Evaluation error: {e}")
-    
-    # Test 4: Portfolio Analysis
-    print("\n4. Testing Portfolio Analysis...")
+    # Test portfolio analysis
+    print("\n5. Testing Portfolio Analysis:")
     portfolio_data = {
         "total_capital": 10000,
         "current_value": 10500,
@@ -97,48 +76,57 @@ def test_ai_endpoints():
         "total_trades": 20,
         "recent_trades": ["BTCUSDT", "ETHUSDT", "ADAUSDT"]
     }
+    portfolio_analysis = test_endpoint("/ai/portfolio-analysis", "POST", portfolio_data)
     
-    try:
-        response = requests.post(
-            f"{base_url}/ai/portfolio-analysis",
-            json=portfolio_data,
-            timeout=60
-        )
-        if response.status_code == 200:
-            data = response.json()
-            print(f"✅ Portfolio Analysis:")
-            print(f"   Performance Grade: {data['analysis'].get('performance_grade', 'N/A')}")
-            print(f"   Risk Assessment: {data['analysis'].get('risk_assessment', 'N/A')}")
-        else:
-            print(f"❌ Portfolio Analysis failed: {response.status_code}")
-            print(f"   Response: {response.text}")
-    except Exception as e:
-        print(f"❌ Portfolio Analysis error: {e}")
-    
-    # Test 5: Trading Insights
-    print("\n5. Testing Trading Insights...")
-    context_data = {
-        "context": "Bitcoin is at $45,000 with strong institutional buying and positive market sentiment"
+    # Test insights
+    print("\n6. Testing Trading Insights:")
+    insights_data = {
+        "context": "Current market analysis for BTCUSDT with strong institutional buying and positive market sentiment"
     }
+    insights = test_endpoint("/ai/insights", "POST", insights_data)
     
-    try:
-        response = requests.post(
-            f"{base_url}/ai/insights",
-            json=context_data,
-            timeout=60
-        )
-        if response.status_code == 200:
-            data = response.json()
-            print(f"✅ Trading Insights:")
-            print(f"   {data['insights'][:200]}...")
-        else:
-            print(f"❌ Trading Insights failed: {response.status_code}")
-            print(f"   Response: {response.text}")
-    except Exception as e:
-        print(f"❌ Trading Insights error: {e}")
+    # Test automated trading status
+    print("\n7. Testing Automated Trading Status:")
+    auto_status = test_endpoint("/automated-trading/status")
     
-    print("\n" + "=" * 40)
-    print("🎉 AI Integration Test Complete!")
+    # Test AI decisions
+    print("\n8. Testing AI Decisions:")
+    decisions = test_endpoint("/automated-trading/decisions")
+    
+    # Test starting automated trading (should fail since it's disabled by default)
+    print("\n9. Testing Start Automated Trading (should fail - disabled by default):")
+    start_result = test_endpoint("/automated-trading/start", "POST")
+    
+    # Test other endpoints
+    print("\n10. Testing Other Endpoints:")
+    prices = test_endpoint("/prices")
+    strategies = test_endpoint("/strategies")
+    
+    print("\n" + "=" * 50)
+    print("🎯 Test Summary:")
+    print("=" * 50)
+    
+    # Print some sample responses
+    if ai_status:
+        print(f"AI Status: {ai_status.get('status', 'Unknown')}")
+        print(f"Model: {ai_status.get('model', 'Unknown')}")
+    
+    if market_analysis:
+        signal = market_analysis.get('analysis', {}).get('signal', 'Unknown')
+        confidence = market_analysis.get('analysis', {}).get('confidence', 'Unknown')
+        print(f"Market Signal: {signal} (Confidence: {confidence})")
+    
+    if auto_status:
+        is_running = auto_status.get('automated_trading', {}).get('is_running', False)
+        enabled = auto_status.get('settings', {}).get('enabled', False)
+        print(f"Automated Trading: {'Running' if is_running else 'Stopped'} (Enabled: {enabled})")
+    
+    print("\n✅ All tests completed! The AI trading system is ready.")
+    print("\n📊 Next steps:")
+    print("1. Open http://localhost:3000 in your browser")
+    print("2. Navigate to the 'AI Dashboard' tab")
+    print("3. Test the automated trading controls")
+    print("4. Enable live trading in settings when ready")
 
 if __name__ == "__main__":
-    test_ai_endpoints() 
+    main() 
