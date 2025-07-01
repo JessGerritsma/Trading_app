@@ -12,6 +12,8 @@ from ..core.database import get_db
 from ..models import Trade, AIDecision
 from ..core.config import settings
 from services.llm_service import LLMService
+from binance.client import Client
+from binance.exceptions import BinanceAPIException
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,18 @@ class AutomatedTradingService:
         self.last_analysis = {}
         self.trade_cooldown = {}  # Prevent rapid trading
         self.daily_trades = {}  # Track daily trade count per symbol
+        
+        # Initialize Binance client
+        try:
+            self.binance_client = Client(
+                settings.binance_api_key,
+                settings.binance_secret_key,
+                testnet=settings.binance_testnet
+            )
+            logger.info("Binance client initialized for automated trading")
+        except Exception as e:
+            logger.error(f"Failed to initialize Binance client for automated trading: {e}")
+            self.binance_client = None
         
     async def start_monitoring(self):
         """Start the automated trading monitoring loop"""
@@ -114,19 +128,92 @@ class AutomatedTradingService:
     async def get_market_data(self, symbol: str) -> Optional[Dict[str, Any]]:
         """Get current market data for a symbol"""
         try:
-            # This would typically fetch from Binance API
-            # For now, return mock data
+            if not self.binance_client:
+                logger.error("Binance client not available for market data")
+                return None
+            
+            # Get current ticker
+            ticker = self.binance_client.get_symbol_ticker(symbol=symbol)
+            current_price = float(ticker['price'])
+            
+            # Get 24hr stats
+            stats = self.binance_client.get_ticker(symbol=symbol)
+            
+            # Get recent klines for basic indicators
+            klines = self.binance_client.get_klines(symbol=symbol, interval='1h', limit=24)
+            
+            # Calculate basic indicators
+            closes = [float(kline[4]) for kline in klines]
+            volumes = [float(kline[5]) for kline in klines]
+            
+            # Simple RSI calculation
+            rsi = self._calculate_rsi(closes)
+            
+            # Simple MACD calculation
+            macd_signal = self._calculate_macd_signal(closes)
+            
             return {
                 'symbol': symbol,
-                'price': 45000,  # Mock price
-                'change_24h': 2.5,
-                'volume': 2500000000,
-                'rsi': 65,
-                'macd': 'bullish'
+                'price': current_price,
+                'change_24h': float(stats['priceChangePercent']),
+                'volume': float(stats['volume']),
+                'rsi': rsi,
+                'macd': macd_signal,
+                'high_24h': float(stats['highPrice']),
+                'low_24h': float(stats['lowPrice'])
             }
         except Exception as e:
             logger.error(f"Error getting market data for {symbol}: {e}")
             return None
+    
+    def _calculate_rsi(self, closes: list, period: int = 14) -> float:
+        """Calculate RSI indicator"""
+        if len(closes) < period + 1:
+            return 50.0  # Default neutral value
+        
+        gains = []
+        losses = []
+        
+        for i in range(1, len(closes)):
+            change = closes[i] - closes[i-1]
+            if change > 0:
+                gains.append(change)
+                losses.append(0)
+            else:
+                gains.append(0)
+                losses.append(abs(change))
+        
+        if len(gains) < period:
+            return 50.0
+        
+        avg_gain = sum(gains[-period:]) / period
+        avg_loss = sum(losses[-period:]) / period
+        
+        if avg_loss == 0:
+            return 100.0
+        
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+        
+        return round(rsi, 2)
+    
+    def _calculate_macd_signal(self, closes: list) -> str:
+        """Calculate simple MACD signal"""
+        if len(closes) < 26:
+            return 'neutral'
+        
+        # Simple EMA calculation
+        ema12 = sum(closes[-12:]) / 12
+        ema26 = sum(closes[-26:]) / 26
+        
+        macd = ema12 - ema26
+        
+        if macd > 0:
+            return 'bullish'
+        elif macd < 0:
+            return 'bearish'
+        else:
+            return 'neutral'
     
     def should_execute_trade(self, analysis: Dict[str, Any]) -> bool:
         """Determine if a trade should be executed based on AI analysis"""
@@ -218,20 +305,70 @@ class AutomatedTradingService:
             return 0.001  # Default minimum quantity
     
     async def place_trade(self, trade_data: Dict[str, Any]) -> bool:
-        """Place a trade using the existing trade endpoint"""
+        """Place a trade using Binance API"""
         try:
-            # This would call your existing trade placement logic
-            # For now, just log the trade
-            logger.info(f"Placing trade: {trade_data}")
+            if not self.binance_client:
+                logger.error("Binance client not available for trade placement")
+                return False
             
-            # In production, you'd call the actual trade placement function
-            # from your main app.py or a dedicated trading service
+            # Validate trade data
+            required_fields = ["symbol", "side", "type", "quantity"]
+            for field in required_fields:
+                if field not in trade_data:
+                    logger.error(f"Missing required field: {field}")
+                    return False
             
-            return True  # Mock success
+            # Prepare order parameters
+            order_params = {
+                "symbol": trade_data["symbol"],
+                "side": trade_data["side"],
+                "type": trade_data["type"],
+                "quantity": trade_data["quantity"]
+            }
             
+            # Add price for limit orders
+            if trade_data.get("price"):
+                order_params["price"] = trade_data["price"]
+            
+            # Place order on Binance
+            order = self.binance_client.create_order(**order_params)
+            
+            # Store trade in database
+            await self._store_trade_in_db(trade_data, order)
+            
+            logger.info(f"Trade placed successfully: {order.get('orderId')}")
+            return True
+            
+        except BinanceAPIException as e:
+            logger.error(f"Binance API error placing trade: {e}")
+            return False
         except Exception as e:
             logger.error(f"Error placing trade: {e}")
             return False
+    
+    async def _store_trade_in_db(self, trade_data: Dict[str, Any], order: Dict[str, Any]):
+        """Store trade in database"""
+        try:
+            db = next(get_db())
+            
+            db_trade = Trade(
+                symbol=trade_data["symbol"],
+                side=trade_data["side"],
+                type=trade_data["type"],
+                quantity=float(trade_data["quantity"]),
+                price=float(trade_data.get("price", 0)),
+                order_id=order.get("orderId"),
+                status=order.get("status", "PENDING"),
+                strategy=trade_data.get("strategy", "AI_AUTOMATED"),
+                ai_decision=trade_data.get("ai_decision", True),
+                ai_reasoning=trade_data.get("ai_reasoning", "")
+            )
+            
+            db.add(db_trade)
+            db.commit()
+            
+        except Exception as e:
+            logger.error(f"Error storing trade in database: {e}")
     
     async def store_ai_decision(self, symbol: str, analysis: Dict[str, Any], market_data: Dict[str, Any]):
         """Store AI decision in database"""

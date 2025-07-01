@@ -164,21 +164,33 @@ async def get_account():
             raise HTTPException(status_code=503, detail="Binance client not configured")
         
         account = binance_client.get_account()
+        
+        # Process balances safely
+        balances = []
+        for balance in account["balances"]:
+            try:
+                free = float(balance.get("free", 0))
+                locked = float(balance.get("locked", 0))
+                total = free + locked
+                
+                # Only include balances with some value
+                if total > 0:
+                    balances.append({
+                        "asset": balance["asset"],
+                        "free": free,
+                        "locked": locked,
+                        "total": total
+                    })
+            except (ValueError, KeyError) as e:
+                logger.warning(f"Error processing balance for {balance.get('asset', 'unknown')}: {e}")
+                continue
+        
         return {
             "account_type": "SPOT",
-            "can_trade": account["canTrade"],
-            "can_withdraw": account["canWithdraw"],
-            "can_deposit": account["canDeposit"],
-            "balances": [
-                {
-                    "asset": balance["asset"],
-                    "free": float(balance["free"]),
-                    "locked": float(balance["locked"]),
-                    "total": float(balance["total"])
-                }
-                for balance in account["balances"]
-                if float(balance["total"]) > 0
-            ]
+            "can_trade": account.get("canTrade", False),
+            "can_withdraw": account.get("canWithdraw", False),
+            "can_deposit": account.get("canDeposit", False),
+            "balances": balances
         }
     except BinanceAPIException as e:
         logger.error(f"Binance API error: {e}")
@@ -296,6 +308,48 @@ async def place_trade(trade_data: dict, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error placing trade: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to place trade: {str(e)}")
+
+@app.get("/orders/{symbol}")
+async def get_orders(symbol: str, limit: int = 100):
+    """Get open orders for a symbol"""
+    try:
+        if not binance_client:
+            raise HTTPException(status_code=503, detail="Binance client not configured")
+        
+        # Get open orders from Binance
+        orders = binance_client.get_open_orders(symbol=symbol)
+        
+        # Process orders safely
+        processed_orders = []
+        for order in orders[:limit]:  # Limit the number of orders
+            try:
+                processed_orders.append({
+                    "order_id": order.get("orderId"),
+                    "symbol": order.get("symbol"),
+                    "side": order.get("side"),
+                    "type": order.get("type"),
+                    "quantity": float(order.get("origQty", 0)),
+                    "price": float(order.get("price", 0)),
+                    "status": order.get("status"),
+                    "time": order.get("time"),
+                    "update_time": order.get("updateTime")
+                })
+            except (ValueError, KeyError) as e:
+                logger.warning(f"Error processing order {order.get('orderId', 'unknown')}: {e}")
+                continue
+        
+        return {
+            "symbol": symbol,
+            "orders": processed_orders,
+            "count": len(processed_orders)
+        }
+        
+    except BinanceAPIException as e:
+        logger.error(f"Binance API error: {e}")
+        raise HTTPException(status_code=400, detail=f"Binance API error: {e.message}")
+    except Exception as e:
+        logger.error(f"Error getting orders: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get orders: {str(e)}")
 
 @app.get("/market-data/{symbol}")
 async def get_market_data(
@@ -488,6 +542,13 @@ async def start_automated_trading():
         
         if not settings.enable_automated_trading:
             raise HTTPException(status_code=400, detail="Automated trading is disabled in settings")
+        
+        # Check if already running
+        if automated_trading_service.is_running:
+            return {
+                "success": True,
+                "message": "Automated trading is already running"
+            }
         
         # Start the monitoring loop in background
         import asyncio
