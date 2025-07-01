@@ -1,6 +1,18 @@
 import React, { useEffect, useState } from 'react';
 
+const sections = [
+  { key: 'ai', label: 'AI Trading' },
+  { key: 'notifications', label: 'Notifications' },
+  { key: 'appearance', label: 'Appearance' },
+  { key: 'risk', label: 'Risk Management' },
+  { key: 'chart', label: 'Chart Preferences' },
+  { key: 'account', label: 'Account & Security' },
+  { key: 'privacy', label: 'Data & Privacy' },
+  { key: 'advanced', label: 'Advanced' },
+];
+
 const SettingsPage: React.FC = () => {
+  const [activeSection, setActiveSection] = useState('ai');
   const [settings, setSettings] = useState<any>(null);
   const [notifications, setNotifications] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -65,47 +77,73 @@ const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 rounded-2xl bg-gradient-to-br from-green-900 via-teal-900 to-green-800 p-6 shadow-xl">
-      <h2 className="text-2xl font-bold mb-4 text-green-100">Settings</h2>
-      {loading && <div className="text-green-200">Loading...</div>}
-      {settings && (
-        <form className="space-y-4" onSubmit={e => { e.preventDefault(); saveSettings(); }}>
-          {Object.entries(settings).map(([k, v]) => (
-            <div key={k} className="flex items-center gap-4">
-              <label className="w-48 font-medium text-green-200">{k}</label>
-              <input
-                className="flex-1 border px-2 py-1 rounded-xl bg-green-950/60 text-green-100"
-                value={String(v)}
-                onChange={e => handleChange(k, e.target.value)}
-                disabled={saving}
-              />
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="bg-white dark:bg-green-950 rounded-2xl shadow-xl p-6 mb-6">
+        <h1 className="text-3xl font-bold mb-2">Settings</h1>
+        <p className="text-gray-500 dark:text-green-200">Configure your trading preferences and AI parameters</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6">
+        <div className="bg-white dark:bg-green-900 rounded-2xl shadow-xl h-fit">
+          {sections.map(s => (
+            <div
+              key={s.key}
+              className={`px-6 py-4 border-b last:border-b-0 cursor-pointer transition-colors ${activeSection === s.key ? 'bg-blue-100 dark:bg-green-800 border-l-4 border-blue-500 dark:border-teal-400' : 'hover:bg-gray-100 dark:hover:bg-green-800'}`}
+              onClick={() => setActiveSection(s.key)}
+            >
+              {s.label}
             </div>
           ))}
-          <button
-            type="submit"
-            className="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50"
-            disabled={saving}
-          >
-            Save
-          </button>
-        </form>
-      )}
-      <div className="flex items-center gap-4 mt-6">
-        <label className="font-medium text-green-200">Notifications</label>
-        <input
-          type="checkbox"
-          checked={notifications}
-          onChange={e => saveNotifications(e.target.checked)}
-        />
-      </div>
-      <div className="flex items-center gap-4 mt-6">
-        <label className="font-medium text-green-200">Theme</label>
-        <button
-          onClick={toggleTheme}
-          className="px-4 py-2 bg-green-800 text-green-100 rounded-xl hover:bg-green-700"
-        >
-          Switch to {theme === 'light' ? 'Dark' : 'Light'}
-        </button>
+        </div>
+        <div className="bg-white dark:bg-green-900 rounded-2xl shadow-xl p-8">
+          {activeSection === 'ai' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">AI Trading Parameters</h2>
+              {/* Add AI trading settings here */}
+            </div>
+          )}
+          {activeSection === 'notifications' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Notifications</h2>
+              {/* Add notification settings here */}
+            </div>
+          )}
+          {activeSection === 'appearance' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Appearance</h2>
+              {/* Add appearance settings here */}
+            </div>
+          )}
+          {activeSection === 'risk' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Risk Management</h2>
+              {/* Add risk management settings here */}
+            </div>
+          )}
+          {activeSection === 'chart' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Chart Preferences</h2>
+              {/* Add chart preferences here */}
+            </div>
+          )}
+          {activeSection === 'account' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Account & Security</h2>
+              {/* Add account & security settings here */}
+            </div>
+          )}
+          {activeSection === 'privacy' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Data & Privacy</h2>
+              {/* Add data & privacy settings here */}
+            </div>
+          )}
+          {activeSection === 'advanced' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Advanced</h2>
+              {/* Add advanced settings here */}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

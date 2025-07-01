@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
@@ -239,7 +239,7 @@ async def get_trades(
         trades = query.order_by(Trade.timestamp.desc()).limit(limit).all()
         
         return {
-            "trades": [trade.to_dict() for trade in trades]
+            "trades": [trade.to_dict() for trade in trades] if trades else []
         }
     except Exception as e:
         logger.error(f"Error getting trades: {e}")
@@ -512,6 +512,22 @@ async def get_trading_insights(context: dict):
     except Exception as e:
         logger.error(f"Insights generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Insights generation failed: {str(e)}")
+
+@app.post("/chat")
+async def chat_with_llm(request: Request):
+    """Chat with the LLM, maintaining context"""
+    data = await request.json()
+    message = data.get("message", "")
+    context = data.get("context", [])
+    if not llm_service:
+        raise HTTPException(status_code=503, detail="LLM service not configured")
+    # context is a list of {user, ai} dicts
+    history = [(m["user"], m["ai"]) for m in context if m.get("user") and m.get("ai")]
+    try:
+        response = await llm_service._call_ollama(llm_service._build_history_prompt(history, message))
+    except Exception as e:
+        response = None
+    return {"response": response or "No response from LLM."}
 
 # =============================================================================
 # AUTOMATED TRADING ENDPOINTS

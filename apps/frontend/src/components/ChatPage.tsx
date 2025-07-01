@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { FaSpinner } from 'react-icons/fa';
 
 interface ChatMessage {
   user: string;
@@ -116,7 +117,7 @@ const ChatPage: React.FC = () => {
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           disabled={loading || !input.trim()}
         >
-          Send
+          {loading ? <FaSpinner className="animate-spin" /> : 'Send'}
         </button>
         <button
           onClick={clearChat}
@@ -126,6 +127,12 @@ const ChatPage: React.FC = () => {
           Clear
         </button>
       </div>
+      {loading && (
+        <div className="flex justify-center items-center mt-4">
+          <FaSpinner className="animate-spin text-2xl text-blue-600" />
+          <span className="ml-2 text-blue-600">Waiting for LLM response...</span>
+        </div>
+      )}
       <div className="mt-8 rounded-2xl bg-green-950/70 p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-green-100">Trade Journal</h2>
@@ -136,42 +143,46 @@ const ChatPage: React.FC = () => {
         </div>
         {loading && <div className="text-green-200">Loading...</div>}
         <div className="overflow-x-auto">
-          <table className="min-w-full text-green-100 rounded-xl">
-            <thead>
-              <tr className="bg-green-900">
-                <th className="px-2 py-1">ID</th>
-                <th className="px-2 py-1">Entered</th>
-                <th className="px-2 py-1">Exited</th>
-                <th className="px-2 py-1">Entry</th>
-                <th className="px-2 py-1">Exit</th>
-                <th className="px-2 py-1">Size</th>
-                <th className="px-2 py-1">Reasoning</th>
-                <th className="px-2 py-1">Parameters</th>
-                <th className="px-2 py-1">SL</th>
-                <th className="px-2 py-1">TP</th>
-                <th className="px-2 py-1">Status</th>
-                <th className="px-2 py-1">Strategy</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trades.map(trade => (
-                <tr key={trade.id} className="odd:bg-green-950 even:bg-green-900">
-                  <td className="px-2 py-1">{trade.id}</td>
-                  <td className="px-2 py-1">{trade.datetime_entered}</td>
-                  <td className="px-2 py-1">{trade.datetime_exited || '-'}</td>
-                  <td className="px-2 py-1">{trade.price_enter}</td>
-                  <td className="px-2 py-1">{trade.price_exit || '-'}</td>
-                  <td className="px-2 py-1">{trade.size}</td>
-                  <td className="px-2 py-1">{trade.reasoning || '-'}</td>
-                  <td className="px-2 py-1">{trade.parameters || '-'}</td>
-                  <td className="px-2 py-1">{trade.stop_loss || '-'}</td>
-                  <td className="px-2 py-1">{trade.take_profit || '-'}</td>
-                  <td className="px-2 py-1">{trade.status}</td>
-                  <td className="px-2 py-1">{trade.strategy || '-'}</td>
+          {trades.length === 0 ? (
+            <div className="text-green-200 text-center py-8">No trades yet. Your journal will appear here after you add trades.</div>
+          ) : (
+            <table className="min-w-full text-green-100 rounded-xl">
+              <thead>
+                <tr className="bg-green-900">
+                  <th className="px-2 py-1">ID</th>
+                  <th className="px-2 py-1">Entered</th>
+                  <th className="px-2 py-1">Exited</th>
+                  <th className="px-2 py-1">Entry</th>
+                  <th className="px-2 py-1">Exit</th>
+                  <th className="px-2 py-1">Size</th>
+                  <th className="px-2 py-1">Reasoning</th>
+                  <th className="px-2 py-1">Parameters</th>
+                  <th className="px-2 py-1">SL</th>
+                  <th className="px-2 py-1">TP</th>
+                  <th className="px-2 py-1">Status</th>
+                  <th className="px-2 py-1">Strategy</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {trades.map(trade => (
+                  <tr key={trade.id} className="odd:bg-green-950 even:bg-green-900">
+                    <td className="px-2 py-1">{trade.id ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.datetime_entered ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.datetime_exited ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.price_enter ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.price_exit ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.size ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.reasoning ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.parameters ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.stop_loss ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.take_profit ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.status ?? '-'}</td>
+                    <td className="px-2 py-1">{trade.strategy ?? '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
