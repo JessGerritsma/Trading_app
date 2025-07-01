@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import subprocess
 import json
 import glob
+import datetime
 
 # Import our new modules
 from src.core.config import settings
@@ -557,6 +558,80 @@ def summarize_live_prices():
     except Exception:
         return "Live prices unavailable."
 
+CHAT_HISTORY_PATH = 'apps/backend/data/chat_history.json'
+OBSIDIAN_CHAT_MD = 'obsidian/04_Logs/chat_history.md'
+
+# Utility: Load chat history
+def load_chat_history(limit=50):
+    try:
+        with open(CHAT_HISTORY_PATH, 'r', encoding='utf-8') as f:
+            history = json.load(f)
+        return history[-limit:]
+    except Exception:
+        return []
+
+# Utility: Save chat history
+def save_chat_history(history):
+    with open(CHAT_HISTORY_PATH, 'w', encoding='utf-8') as f:
+        json.dump(history, f, indent=2)
+
+# Utility: Append chat to Obsidian
+def append_chat_to_obsidian(user, ai, timestamp=None):
+    ts = timestamp or datetime.datetime.now().isoformat()
+    note = f"\n---\n**{ts}**\nUser: {user}\nAI: {ai}\n"
+    try:
+        with open(OBSIDIAN_CHAT_MD, 'a', encoding='utf-8') as f:
+            f.write(note)
+    except Exception:
+        pass
+
+# Trading pairs utilities
+DEFAULT_PAIRS = ['BTCUSDT', 'ETHUSDT', 'ADAUSDT']
+
+def get_trading_pairs():
+    settings = load_settings()
+    return settings.get('trading_pairs', DEFAULT_PAIRS)
+
+def set_trading_pairs(pairs):
+    settings = load_settings()
+    settings['trading_pairs'] = pairs
+    save_settings(settings)
+
+@app.get("/chat/history")
+async def get_chat_history(limit: int = 50):
+    return {"history": load_chat_history(limit)}
+
+@app.post("/chat/history")
+async def add_chat_history(entry: dict):
+    history = load_chat_history()
+    history.append(entry)
+    save_chat_history(history)
+    append_chat_to_obsidian(entry.get('user', ''), entry.get('ai', ''), entry.get('timestamp'))
+    return {"success": True}
+
+@app.get("/trading-pairs")
+async def get_pairs():
+    return {"trading_pairs": get_trading_pairs()}
+
+@app.post("/trading-pairs")
+async def add_pair(pair: dict):
+    pairs = get_trading_pairs()
+    symbol = pair.get('symbol')
+    if symbol and symbol not in pairs:
+        pairs.append(symbol)
+        set_trading_pairs(pairs)
+    return {"trading_pairs": pairs}
+
+@app.delete("/trading-pairs")
+async def remove_pair(pair: dict):
+    pairs = get_trading_pairs()
+    symbol = pair.get('symbol')
+    if symbol and symbol in pairs:
+        pairs.remove(symbol)
+        set_trading_pairs(pairs)
+    return {"trading_pairs": pairs}
+
+# Update chat endpoint to persist history
 @app.post("/chat")
 async def chat_with_llm(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
@@ -590,6 +665,16 @@ AI:"""
         response = await llm_service._call_ollama(prompt)
     except Exception as e:
         response = None
+    # Persist chat
+    chat_entry = {
+        "user": message,
+        "ai": response or "No response from LLM.",
+        "timestamp": datetime.datetime.now().isoformat()
+    }
+    history_json = load_chat_history()
+    history_json.append(chat_entry)
+    save_chat_history(history_json)
+    append_chat_to_obsidian(message, response or "No response from LLM.")
     return {"response": response or "No response from LLM."}
 
 # =============================================================================
@@ -715,7 +800,8 @@ def load_settings():
             "stop_loss_default": 5,
             "take_profit_default": 10,
             "daily_loss_limit": 3,
-            "risk_tolerance": "Moderate"
+            "risk_tolerance": "Moderate",
+            "trading_pairs": DEFAULT_PAIRS
         }
 def save_settings(settings):
     with open(SETTINGS_PATH, 'w') as f:

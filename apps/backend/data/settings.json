@@ -1,0 +1,20 @@
+{
+  "auto_trade": true,
+  "ai_confidence_threshold": 75,
+  "trading_strategy": "Balanced",
+  "max_daily_trades": 10,
+  "position_size": 2,
+  "trade_notifications": true,
+  "price_alerts": true,
+  "ai_recommendations": false,
+  "email_notifications": true,
+  "push_notifications": true,
+  "theme": "Dark Mode",
+  "chart_theme": "Professional",
+  "compact_view": false,
+  "stop_loss_default": 5,
+  "take_profit_default": 10,
+  "daily_loss_limit": 3,
+  "risk_tolerance": "Moderate",
+  "trading_pairs": ["BTCUSDT", "ETHUSDT", "ADAUSDT"]
+} 

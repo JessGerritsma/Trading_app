@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 const sections = [
   { key: 'ai', label: 'AI Trading' },
+  { key: 'trading_pairs', label: 'Trading Pairs' },
   { key: 'notifications', label: 'Notifications' },
   { key: 'appearance', label: 'Appearance' },
   { key: 'risk', label: 'Risk Management' },
@@ -36,6 +37,8 @@ const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<any>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tradingPairs, setTradingPairs] = useState<string[]>([]);
+  const [newPair, setNewPair] = useState('');
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -50,20 +53,53 @@ const SettingsPage: React.FC = () => {
         setLoading(false);
       }
     };
+    const fetchPairs = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/trading-pairs');
+        const data = await res.json();
+        setTradingPairs(data.trading_pairs || []);
+      } catch { setTradingPairs([]); }
+    };
     fetchSettings();
+    fetchPairs();
   }, []);
 
   const handleChange = (k: string, v: any) => {
     setSettings((s: any) => ({ ...s, [k]: v }));
   };
 
+  const addPair = async () => {
+    if (!newPair.trim()) return;
+    await fetch('http://localhost:8000/trading-pairs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol: newPair.trim().toUpperCase() })
+    });
+    setNewPair('');
+    const res = await fetch('http://localhost:8000/trading-pairs');
+    const data = await res.json();
+    setTradingPairs(data.trading_pairs || []);
+  };
+
+  const removePair = async (symbol: string) => {
+    await fetch('http://localhost:8000/trading-pairs', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol })
+    });
+    const res = await fetch('http://localhost:8000/trading-pairs');
+    const data = await res.json();
+    setTradingPairs(data.trading_pairs || []);
+  };
+
   const saveSettings = async () => {
     setSaving(true);
     try {
+      const { trading_pairs, ...rest } = settings;
       await fetch('http://localhost:8000/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(rest),
       });
     } finally {
       setSaving(false);
@@ -121,6 +157,35 @@ const SettingsPage: React.FC = () => {
                       <input type="number" min={0.1} max={10} step={0.1} value={settings.position_size} onChange={e => handleChange('position_size', Number(e.target.value))} className="input-field" />
                     </div>
                   </div>
+                </div>
+              )}
+              {activeSection === 'trading_pairs' && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">Trading Pairs</h2>
+                  <div className="mb-4">
+                    <input
+                      type="text"
+                      value={newPair}
+                      onChange={e => setNewPair(e.target.value)}
+                      placeholder="Add new pair (e.g. SOLUSDT)"
+                      className="border px-2 py-1 rounded mr-2"
+                    />
+                    <button
+                      onClick={addPair}
+                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >Add</button>
+                  </div>
+                  <ul className="space-y-2">
+                    {tradingPairs.map(pair => (
+                      <li key={pair} className="flex items-center justify-between bg-gray-100 rounded px-3 py-2">
+                        <span>{pair}</span>
+                        <button
+                          onClick={() => removePair(pair)}
+                          className="text-red-600 hover:underline"
+                        >Remove</button>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
               {activeSection === 'notifications' && (
@@ -204,7 +269,6 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </div>
               )}
-              {/* Other sections can be scaffolded similarly */}
               <div className="flex justify-end mt-8">
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50" disabled={saving}>
                   Save

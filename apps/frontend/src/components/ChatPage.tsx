@@ -30,6 +30,18 @@ const ChatPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [newTrade, setNewTrade] = useState<Partial<Trade>>({ status: 'trial' });
 
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/chat/history');
+        const data = await res.json();
+        if (data.history) setMessages(data.history);
+      } catch {}
+    };
+    fetchHistory();
+    fetchTrades();
+  }, []);
+
   const sendMessage = async () => {
     if (!input.trim()) return;
     const newMessages = [...messages, { user: input, ai: '' }];
@@ -42,7 +54,13 @@ const ChatPage: React.FC = () => {
         body: JSON.stringify({ message: input, context: newMessages }),
       });
       const data = await res.json();
-      setMessages([...newMessages.slice(0, -1), { user: input, ai: data.response }]);
+      const updatedMessages = [...newMessages.slice(0, -1), { user: input, ai: data.response }];
+      setMessages(updatedMessages);
+      await fetch('http://localhost:8000/chat/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: input, ai: data.response, timestamp: new Date().toISOString() })
+      });
     } catch (e) {
       setMessages([...newMessages.slice(0, -1), { user: input, ai: 'Error: Could not get response.' }]);
     } finally {
@@ -66,8 +84,6 @@ const ChatPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => { fetchTrades(); }, []);
 
   const handleChange = (k: string, v: any) => {
     setNewTrade(t => ({ ...t, [k]: v }));
