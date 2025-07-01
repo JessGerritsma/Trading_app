@@ -5,7 +5,7 @@ Run this to verify the trading AI is working
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'apps', 'backend', 'src'))
 
 from services.llm_service import LLMService
 import json
