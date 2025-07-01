@@ -12,7 +12,7 @@ from ..core.database import get_db
 from ..models import Trade, AIDecision
 from ..core.config import settings
 from services.llm_service import LLMService
-from services.realtime_data_service import RealTimeDataService
+# from services.realtime_data_service import RealTimeDataService  # TODO: Implement or restore this service if needed
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
 
@@ -102,7 +102,7 @@ class AutomatedTradingService:
         self.daily_trades = {}
         self.conversation_history: Dict[str, List[Tuple[str, str]]] = {symbol: [] for symbol in symbols}
         self.symbols = symbols
-        self.realtime_service = RealTimeDataService(symbols)
+        # self.realtime_service = RealTimeDataService(symbols)  # TODO: Implement or restore this service if needed
         self.risk_manager = RiskManager()
         # Initialize Binance client for trade execution
         try:
@@ -118,9 +118,9 @@ class AutomatedTradingService:
 
     async def start_realtime_trading(self):
         self.is_running = True
-        self.realtime_service.add_event_callback(self._on_market_event)
-        await self.realtime_service.start()
-        logger.info("Automated trading with real-time data started.")
+        # self.realtime_service.add_event_callback(self._on_market_event)
+        # await self.realtime_service.start()
+        logger.info("Automated trading with real-time data started (realtime service disabled).")
 
     def _on_market_event(self, event: Dict[str, Any]):
         symbol = event['symbol']
