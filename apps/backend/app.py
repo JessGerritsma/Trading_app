@@ -629,6 +629,42 @@ async def get_ai_decisions(
         logger.error(f"Error getting AI decisions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get AI decisions: {str(e)}")
 
+@app.get("/settings")
+async def get_settings():
+    """Return all settings for the settings page."""
+    return {
+        "auto_trade": True,
+        "ai_confidence_threshold": 75,
+        "trading_strategy": "Balanced",
+        "max_daily_trades": 10,
+        "position_size": 2,
+        "trade_notifications": True,
+        "price_alerts": True,
+        "ai_recommendations": False,
+        "email_notifications": True,
+        "push_notifications": True,
+        "theme": "Dark Mode",
+        "chart_theme": "Professional",
+        "compact_view": False,
+        "stop_loss_default": 5,
+        "take_profit_default": 10,
+        "daily_loss_limit": 3,
+        "risk_tolerance": "Moderate"
+    }
+
+@app.post("/settings")
+async def update_settings(new_settings: dict):
+    # For now, just echo back the settings (no persistence)
+    return {"success": True, "settings": new_settings}
+
+@app.get("/notifications")
+async def get_notifications():
+    return {"enabled": True}
+
+@app.post("/notifications")
+async def update_notifications(data: dict):
+    return {"success": True, "enabled": data.get("enabled", True)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
