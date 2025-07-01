@@ -73,6 +73,11 @@ const ChatPage: React.FC = () => {
           Clear
         </button>
       </div>
+      <div className="mt-8 rounded-2xl bg-green-950/70 p-6 shadow-xl">
+        <h2 className="text-2xl font-bold mb-4 text-green-100">Trade Journal</h2>
+        {/* Trade journal table here, with columns: id, datetime_entered, datetime_exited, price_enter, price_exit, size, reasoning, parameters, stop_loss, take_profit, status, strategy */}
+        {/* Add modal/form for new trade entry, supporting multi-stage process */}
+      </div>
     </div>
   );
 };

@@ -7,6 +7,7 @@ import os
 import logging
 from typing import Optional
 from dotenv import load_dotenv
+import subprocess
 
 # Import our new modules
 from src.core.config import settings
@@ -76,9 +77,17 @@ except Exception as e:
 async def startup_event():
     """Initialize database and other startup tasks"""
     try:
-        # Initialize database with tables and default data
+        # Check if Ollama (Llama server) is running
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect(("localhost", 11434))
+            s.close()
+        except Exception:
+            # Start Ollama server if not running
+            subprocess.Popen(["ollama", "serve"])
+        # Initialize database
         init_db()
-        
         logger.info("Application startup completed successfully")
     except Exception as e:
         logger.error(f"Startup error: {e}")

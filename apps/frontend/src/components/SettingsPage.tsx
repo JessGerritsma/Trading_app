@@ -65,16 +65,16 @@ const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-4">Settings</h2>
-      {loading && <div>Loading...</div>}
+    <div className="space-y-6 rounded-2xl bg-gradient-to-br from-green-900 via-teal-900 to-green-800 p-6 shadow-xl">
+      <h2 className="text-2xl font-bold mb-4 text-green-100">Settings</h2>
+      {loading && <div className="text-green-200">Loading...</div>}
       {settings && (
         <form className="space-y-4" onSubmit={e => { e.preventDefault(); saveSettings(); }}>
           {Object.entries(settings).map(([k, v]) => (
             <div key={k} className="flex items-center gap-4">
-              <label className="w-48 font-medium text-gray-700">{k}</label>
+              <label className="w-48 font-medium text-green-200">{k}</label>
               <input
-                className="flex-1 border px-2 py-1 rounded"
+                className="flex-1 border px-2 py-1 rounded-xl bg-green-950/60 text-green-100"
                 value={String(v)}
                 onChange={e => handleChange(k, e.target.value)}
                 disabled={saving}
@@ -83,7 +83,7 @@ const SettingsPage: React.FC = () => {
           ))}
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50"
             disabled={saving}
           >
             Save
@@ -91,7 +91,7 @@ const SettingsPage: React.FC = () => {
         </form>
       )}
       <div className="flex items-center gap-4 mt-6">
-        <label className="font-medium text-gray-700">Notifications</label>
+        <label className="font-medium text-green-200">Notifications</label>
         <input
           type="checkbox"
           checked={notifications}
@@ -99,10 +99,10 @@ const SettingsPage: React.FC = () => {
         />
       </div>
       <div className="flex items-center gap-4 mt-6">
-        <label className="font-medium text-gray-700">Theme</label>
+        <label className="font-medium text-green-200">Theme</label>
         <button
           onClick={toggleTheme}
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+          className="px-4 py-2 bg-green-800 text-green-100 rounded-xl hover:bg-green-700"
         >
           Switch to {theme === 'light' ? 'Dark' : 'Light'}
         </button>

@@ -13,13 +13,22 @@ class Trade(Base):
     quantity = Column(Float, nullable=False)
     price = Column(Float, nullable=False)
     executed_price = Column(Float, nullable=True)
-    status = Column(String(20), default="PENDING")  # PENDING, FILLED, CANCELLED, REJECTED
+    status = Column(String(20), default="trial")  # trial, approved, auto
     order_id = Column(String(100), nullable=True)
     strategy = Column(String(50), nullable=True)
     ai_decision = Column(Boolean, default=False)
     ai_reasoning = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    datetime_entered = Column(DateTime, nullable=False, default=datetime.utcnow)
+    datetime_exited = Column(DateTime, nullable=True)
+    price_enter = Column(Float, nullable=False)
+    price_exit = Column(Float, nullable=True)
+    size = Column(Float, nullable=False)
+    reasoning = Column(Text, nullable=True)
+    parameters = Column(Text, nullable=True)
+    stop_loss = Column(Float, nullable=True)
+    take_profit = Column(Float, nullable=True)
     
     def __repr__(self):
         return f"<Trade(id={self.id}, symbol={self.symbol}, side={self.side}, quantity={self.quantity}, price={self.price})>"

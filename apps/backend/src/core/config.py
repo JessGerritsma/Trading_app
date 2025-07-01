@@ -75,6 +75,10 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     allow_credentials: bool = True
     
+    # Visual/Theme Settings
+    theme: str = "dark"
+    color_palette: str = "green-teal"
+    
     @property
     def trading_pairs_list(self) -> List[str]:
         """Parse trading_pairs string into a list"""
