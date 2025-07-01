@@ -63,6 +63,14 @@ class Settings(BaseSettings):
     enable_backtesting: bool = True
     enable_real_time_charts: bool = True
     
+    # Automated Trading
+    enable_automated_trading: bool = False
+    automated_trading_interval: int = 60  # seconds
+    max_daily_trades_per_symbol: int = 5
+    trade_cooldown_minutes: int = 15
+    ai_confidence_threshold: str = "HIGH"
+    ai_risk_threshold: str = "MEDIUM"
+    
     # CORS
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     allow_credentials: bool = True

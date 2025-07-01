@@ -13,6 +13,7 @@ from src.core.config import settings
 from src.core.database import get_db, create_tables, init_db
 from src.models import Trade, Strategy, MarketData, AIDecision
 from services.llm_service import LLMService
+from src.services.automated_trading import AutomatedTradingService
 
 # Load environment variables
 load_dotenv()
@@ -62,6 +63,14 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize LLM service: {e}")
     llm_service = None
+
+# Initialize Automated Trading service
+try:
+    automated_trading_service = AutomatedTradingService(llm_service) if llm_service else None
+    logger.info("Automated trading service initialized")
+except Exception as e:
+    logger.error(f"Failed to initialize automated trading service: {e}")
+    automated_trading_service = None
 
 @app.on_event("startup")
 async def startup_event():
@@ -437,6 +446,99 @@ async def get_trading_insights(context: dict):
     except Exception as e:
         logger.error(f"Insights generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Insights generation failed: {str(e)}")
+
+# =============================================================================
+# AUTOMATED TRADING ENDPOINTS
+# =============================================================================
+
+@app.get("/automated-trading/status")
+async def get_automated_trading_status():
+    """Get automated trading service status"""
+    try:
+        if not automated_trading_service:
+            return {
+                "status": "not_configured",
+                "message": "Automated trading service not initialized"
+            }
+        
+        status = automated_trading_service.get_status()
+        return {
+            "status": "configured",
+            "automated_trading": status,
+            "settings": {
+                "enabled": settings.enable_automated_trading,
+                "interval": settings.automated_trading_interval,
+                "max_daily_trades": settings.max_daily_trades_per_symbol,
+                "cooldown_minutes": settings.trade_cooldown_minutes
+            }
+        }
+    except Exception as e:
+        logger.error(f"Automated trading status check failed: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+@app.post("/automated-trading/start")
+async def start_automated_trading():
+    """Start automated trading"""
+    try:
+        if not automated_trading_service:
+            raise HTTPException(status_code=503, detail="Automated trading service not configured")
+        
+        if not settings.enable_automated_trading:
+            raise HTTPException(status_code=400, detail="Automated trading is disabled in settings")
+        
+        # Start the monitoring loop in background
+        import asyncio
+        asyncio.create_task(automated_trading_service.start_monitoring())
+        
+        return {
+            "success": True,
+            "message": "Automated trading started successfully"
+        }
+    except Exception as e:
+        logger.error(f"Failed to start automated trading: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start automated trading: {str(e)}")
+
+@app.post("/automated-trading/stop")
+async def stop_automated_trading():
+    """Stop automated trading"""
+    try:
+        if not automated_trading_service:
+            raise HTTPException(status_code=503, detail="Automated trading service not configured")
+        
+        await automated_trading_service.stop_monitoring()
+        
+        return {
+            "success": True,
+            "message": "Automated trading stopped successfully"
+        }
+    except Exception as e:
+        logger.error(f"Failed to stop automated trading: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to stop automated trading: {str(e)}")
+
+@app.get("/automated-trading/decisions")
+async def get_ai_decisions(
+    symbol: Optional[str] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Get AI trading decisions history"""
+    try:
+        query = db.query(AIDecision)
+        
+        if symbol:
+            query = query.filter(AIDecision.symbol == symbol)
+        
+        decisions = query.order_by(AIDecision.timestamp.desc()).limit(limit).all()
+        
+        return {
+            "decisions": [decision.to_dict() for decision in decisions]
+        }
+    except Exception as e:
+        logger.error(f"Error getting AI decisions: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get AI decisions: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
