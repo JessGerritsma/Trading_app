@@ -1,7 +1,13 @@
 import requests
 import json
 from typing import Dict, Any, Optional
-from ..core.config import settings
+import sys
+import os
+
+# Add the src directory to the path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from core.config import settings
 
 class LLMService:
     def __init__(self):

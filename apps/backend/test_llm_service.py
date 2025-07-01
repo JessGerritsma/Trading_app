@@ -5,7 +5,9 @@ Run this to verify the trading AI is working
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'apps', 'backend', 'src'))
+
+# Add the src directory to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from services.llm_service import LLMService
 import json
@@ -127,4 +129,4 @@ def main():
         print("\n⚠️ Some tests failed. Check the errors above.")
 
 if __name__ == "__main__":
-    main()
+    main() 
