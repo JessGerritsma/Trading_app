@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import TradingBotWorkflow from './trading-bot-workflow';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import AIDashboard from './components/AIDashboard';
 
 
 const TRADING_API_URL = 'http://localhost:8000';
@@ -455,10 +456,12 @@ const App: React.FC = () => {
       <nav className="bg-gray-900 text-white p-4 flex gap-4">
         <Link to="/" className="hover:underline">Dashboard</Link>
         <Link to="/workflow" className="hover:underline">Bot Workflow</Link>
+        <Link to="/ai" className="hover:underline">AI Dashboard</Link>
       </nav>
       <Routes>
         <Route path="/" element={<TradingDashboard />} />
         <Route path="/workflow" element={<TradingBotWorkflow />} />
+        <Route path="/ai" element={<AIDashboard />} />
       </Routes>
     </Router>
   );
