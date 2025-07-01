@@ -542,6 +542,21 @@ def summarize_trades(db, n=5):
     except Exception:
         return "No recent trades."
 
+def summarize_live_prices():
+    if not binance_client:
+        return "Binance client not configured."
+    try:
+        prices = []
+        for symbol in settings.trading_pairs_list:
+            try:
+                ticker = binance_client.get_symbol_ticker(symbol=symbol)
+                prices.append(f"{symbol}: {ticker['price']}")
+            except Exception:
+                prices.append(f"{symbol}: unavailable")
+        return '\n'.join(prices)
+    except Exception:
+        return "Live prices unavailable."
+
 @app.post("/chat")
 async def chat_with_llm(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
@@ -550,11 +565,9 @@ async def chat_with_llm(request: Request, db: Session = Depends(get_db)):
     if not llm_service:
         raise HTTPException(status_code=503, detail="LLM service not configured")
     history = [(m["user"], m["ai"]) for m in context if m.get("user") and m.get("ai")]
-    # Summarize Obsidian vault
     obsidian_summary = summarize_markdown_files("obsidian", max_lines=8)
-    # Summarize recent trades
     trades_summary = summarize_trades(db, n=5)
-    # Compose prompt
+    live_price_summary = summarize_live_prices()
     history_str = '\n'.join([f'User: {u}\nAI: {a}' for u,a in history])
     prompt = f"""
 You have access to the following project data:
@@ -564,6 +577,9 @@ You have access to the following project data:
 
 ## Recent Trades:
 {trades_summary}
+
+## Live Prices:
+{live_price_summary}
 
 ## Conversation History:
 {history_str}
