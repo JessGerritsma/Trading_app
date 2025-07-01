@@ -1,3 +1,4 @@
+// apps/frontend/src/App.tsx
 import React, { useState } from 'react';
 import './index.css';
 
@@ -46,4 +47,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App; 
+export default App;
