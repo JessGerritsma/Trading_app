@@ -29,6 +29,6 @@ class Strategy(Base):
             "active": self.active,
             "symbols": self.symbols,
             "performance_metrics": self.performance_metrics,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "created_at": self.created_at.isoformat() if self.created_at is not None else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at is not None else None
         } 

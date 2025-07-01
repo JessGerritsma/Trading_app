@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, BigInteger
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
-
-Base = declarative_base()
+from ..core.database import Base
 
 class MarketData(Base):
     __tablename__ = "market_data"
@@ -26,7 +24,7 @@ class MarketData(Base):
         return {
             "id": self.id,
             "symbol": self.symbol,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "timestamp": self.timestamp.isoformat() if self.timestamp is not None else None,
             "open_price": self.open_price,
             "high_price": self.high_price,
             "low_price": self.low_price,
@@ -34,5 +32,5 @@ class MarketData(Base):
             "volume": self.volume,
             "quote_volume": self.quote_volume,
             "trade_count": self.trade_count,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at is not None else None
         } 

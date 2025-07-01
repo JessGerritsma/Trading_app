@@ -5,6 +5,7 @@ from binance.exceptions import BinanceAPIException
 from sqlalchemy.orm import Session
 import os
 import logging
+from typing import Optional
 from dotenv import load_dotenv
 
 # Import our new modules
@@ -179,7 +180,7 @@ async def get_strategies(db: Session = Depends(get_db)):
 
 @app.get("/trades")
 async def get_trades(
-    symbol: str = None,
+    symbol: Optional[str] = None,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):

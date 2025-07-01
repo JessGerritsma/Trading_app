@@ -38,6 +38,6 @@ class Trade(Base):
             "strategy": self.strategy,
             "ai_decision": self.ai_decision,
             "ai_reasoning": self.ai_reasoning,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "timestamp": self.timestamp.isoformat() if self.timestamp is not None else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at is not None else None
         } 

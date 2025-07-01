@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, JSON
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
-
-Base = declarative_base()
+from ..core.database import Base
 
 class AIDecision(Base):
     __tablename__ = "ai_decisions"
@@ -34,5 +32,5 @@ class AIDecision(Base):
             "llm_response": self.llm_response,
             "executed": self.executed,
             "trade_id": self.trade_id,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None
+            "timestamp": self.timestamp.isoformat() if self.timestamp is not None else None
         } 
