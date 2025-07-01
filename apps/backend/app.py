@@ -7,6 +7,9 @@ import os
 import logging
 from typing import Optional
 from dotenv import load_dotenv
+import csv
+from fastapi.responses import StreamingResponse
+from io import StringIO
 
 # Import our new modules
 from src.core.config import settings
@@ -157,47 +160,34 @@ async def get_prices():
         raise HTTPException(status_code=500, detail=f"Failed to get prices: {str(e)}")
 
 @app.get("/account")
-async def get_account():
-    """Get Binance account information"""
+async def get_account(db: Session = Depends(get_db)):
+    """Get account and portfolio metrics"""
     try:
-        if not binance_client:
-            raise HTTPException(status_code=503, detail="Binance client not configured")
-        
-        account = binance_client.get_account()
-        
-        # Process balances safely
-        balances = []
-        for balance in account["balances"]:
-            try:
-                free = float(balance.get("free", 0))
-                locked = float(balance.get("locked", 0))
-                total = free + locked
-                
-                # Only include balances with some value
-                if total > 0:
-                    balances.append({
-                        "asset": balance["asset"],
-                        "free": free,
-                        "locked": locked,
-                        "total": total
-                    })
-            except (ValueError, KeyError) as e:
-                logger.warning(f"Error processing balance for {balance.get('asset', 'unknown')}: {e}")
-                continue
-        
+        # Use the existing get_account_info from main.py if available, else return dummy
+        from main import get_account_info as main_get_account_info
+        account_info = await main_get_account_info()
+        trades = db.query(Trade).all()
+        total_trades = len(trades)
+        wins = [t for t in trades if getattr(t, 'pnl', 0) > 0]
+        losses = [t for t in trades if getattr(t, 'pnl', 0) <= 0]
+        win_rate = len(wins) / total_trades * 100 if total_trades > 0 else 0
+        closed_trades = [t for t in trades if getattr(t, 'status', None) == 'CLOSED']
+        open_trades = [t for t in trades if getattr(t, 'status', None) == 'OPEN']
+        pnl = sum([getattr(t, 'pnl', 0) for t in trades])
+        equity_curve = [getattr(t, 'equity', 0) for t in trades if hasattr(t, 'equity')]
+        max_drawdown = calculate_max_drawdown(equity_curve)
         return {
-            "account_type": "SPOT",
-            "can_trade": account.get("canTrade", False),
-            "can_withdraw": account.get("canWithdraw", False),
-            "can_deposit": account.get("canDeposit", False),
-            "balances": balances
+            "account": account_info,
+            "pnl": pnl,
+            "drawdown": max_drawdown,
+            "win_rate": win_rate,
+            "open_trades": len(open_trades),
+            "closed_trades": len(closed_trades),
+            "equity_curve": equity_curve
         }
-    except BinanceAPIException as e:
-        logger.error(f"Binance API error: {e}")
-        raise HTTPException(status_code=400, detail=f"Binance API error: {e.message}")
     except Exception as e:
-        logger.error(f"Error getting account info: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get account info: {str(e)}")
+        logger.error(f"Error getting account metrics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get account metrics: {str(e)}")
 
 @app.get("/strategies")
 async def get_strategies(db: Session = Depends(get_db)):
@@ -232,6 +222,17 @@ async def get_trades(
     except Exception as e:
         logger.error(f"Error getting trades: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get trades: {str(e)}")
+
+@app.get("/trades/export")
+async def export_trades(db: Session = Depends(get_db)):
+    trades = db.query(Trade).order_by(Trade.timestamp.desc()).all()
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "symbol", "side", "type", "quantity", "price", "status", "timestamp", "strategy", "ai_decision", "ai_reasoning", "pnl"])
+    for t in trades:
+        writer.writerow([t.id, t.symbol, t.side, t.type, t.quantity, t.price, t.status, t.timestamp, t.strategy, t.ai_decision, t.ai_reasoning, getattr(t, 'pnl', None)])
+    output.seek(0)
+    return StreamingResponse(output, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=trades.csv"})
 
 @app.post("/trade")
 async def place_trade(trade_data: dict, db: Session = Depends(get_db)):
@@ -501,6 +502,21 @@ async def get_trading_insights(context: dict):
         logger.error(f"Insights generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Insights generation failed: {str(e)}")
 
+@app.post("/chat")
+async def chat_with_llm(message: dict, db: Session = Depends(get_db)):
+    """LLM chat endpoint with context/history and trade triggering"""
+    try:
+        user_message = message.get("message")
+        context = message.get("context", [])
+        llm_service = LLMService(base_url=settings.ollama_base_url, model=settings.ollama_model)
+        # Convert context to list of (user, ai) tuples if not already
+        history = [(m.get('user'), m.get('ai')) for m in context] if context and isinstance(context[0], dict) else context
+        response = await llm_service.generate_trading_insights(user_message, history)
+        return {"response": response, "trade_result": None}
+    except Exception as e:
+        logger.error(f"LLM chat failed: {e}")
+        raise HTTPException(status_code=500, detail=f"LLM chat failed: {str(e)}")
+
 # =============================================================================
 # AUTOMATED TRADING ENDPOINTS
 # =============================================================================
@@ -600,6 +616,49 @@ async def get_ai_decisions(
     except Exception as e:
         logger.error(f"Error getting AI decisions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get AI decisions: {str(e)}")
+
+@app.get("/settings")
+async def get_settings():
+    """Get all trading/risk/system parameters"""
+    return settings.dict()
+
+@app.post("/settings")
+async def update_settings(new_settings: dict):
+    """Update trading/risk/system parameters (requires Save button)"""
+    try:
+        for k, v in new_settings.items():
+            if hasattr(settings, k):
+                setattr(settings, k, v)
+        return {"success": True, "settings": settings.dict()}
+    except Exception as e:
+        logger.error(f"Error updating settings: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update settings: {str(e)}")
+
+notification_settings = {"enabled": True}
+
+@app.get("/notifications")
+async def get_notifications():
+    return notification_settings
+
+@app.post("/notifications")
+async def set_notifications(prefs: dict):
+    notification_settings["enabled"] = prefs.get("enabled", True)
+    return notification_settings
+
+# Helper for drawdown calculation
+
+def calculate_max_drawdown(equity_curve):
+    if not equity_curve:
+        return 0
+    max_drawdown = 0
+    peak = equity_curve[0]
+    for x in equity_curve:
+        if x > peak:
+            peak = x
+        drawdown = (peak - x) / peak if peak != 0 else 0
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+    return max_drawdown * 100
 
 if __name__ == "__main__":
     import uvicorn
