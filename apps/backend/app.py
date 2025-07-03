@@ -37,13 +37,18 @@ app = FastAPI(
 )
 
 # CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
+
+from fastapi.middleware.cors import CORSMiddleware
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=settings.cors_origins_list,  # This should be a list of allowed origins
     allow_credentials=settings.allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Initialize Binance client
 try:
@@ -561,19 +566,24 @@ def summarize_live_prices():
 CHAT_HISTORY_PATH = 'apps/backend/data/chat_history.json'
 OBSIDIAN_CHAT_MD = 'obsidian/04_Logs/chat_history.md'
 
-# Utility: Load chat history
-def load_chat_history(limit=50):
-    try:
-        with open(CHAT_HISTORY_PATH, 'r', encoding='utf-8') as f:
-            history = json.load(f)
-        return history[-limit:]
-    except Exception:
-        return []
+def ensure_chat_history_file():
+    chat_dir = os.path.dirname(CHAT_HISTORY_PATH)
+    if not os.path.exists(chat_dir):
+        os.makedirs(chat_dir, exist_ok=True)
+    if not os.path.exists(CHAT_HISTORY_PATH):
+        with open(CHAT_HISTORY_PATH, 'w', encoding='utf-8') as f:
+            f.write('[]')
 
-# Utility: Save chat history
+def load_chat_history(limit=50):
+    ensure_chat_history_file()
+    with open(CHAT_HISTORY_PATH, 'r', encoding='utf-8') as f:
+        history = json.load(f)
+    return history[-limit:]
+
 def save_chat_history(history):
+    ensure_chat_history_file()
     with open(CHAT_HISTORY_PATH, 'w', encoding='utf-8') as f:
-        json.dump(history, f, indent=2)
+        json.dump(history, f, indent=2, ensure_ascii=False)
 
 # Utility: Append chat to Obsidian
 def append_chat_to_obsidian(user, ai, timestamp=None):
