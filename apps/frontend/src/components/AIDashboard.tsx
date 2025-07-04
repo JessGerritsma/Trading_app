@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Brain, 
   TrendingUp, 
@@ -52,6 +52,8 @@ const AIDashboard: React.FC = () => {
   const [insights, setInsights] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [selectedSymbol, setSelectedSymbol] = useState('BTCUSDT');
+  const [livePrice, setLivePrice] = useState<number | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   const API_BASE = 'http://localhost:8000';
 
@@ -82,7 +84,35 @@ const AIDashboard: React.FC = () => {
     }
   };
 
-  const analyzeMarket = async () => {
+  // Connect to websocket and listen for price updates for selectedSymbol
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:8000/ws/prices');
+    wsRef.current = ws;
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.prices) {
+          const found = data.prices.find((p: any) => p.symbol === selectedSymbol);
+          if (found && found.price !== null) {
+            setLivePrice(found.price);
+          }
+        }
+      } catch {}
+    };
+    return () => { ws.close(); };
+  }, [selectedSymbol]);
+
+  // Auto-trigger AI analysis when livePrice changes
+  useEffect(() => {
+    if (livePrice !== null) {
+      analyzeMarket(livePrice);
+      getInsights();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [livePrice, selectedSymbol]);
+
+  // Update analyzeMarket to accept price
+  const analyzeMarket = async (priceOverride?: number) => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/ai/analyze-market`, {
@@ -90,14 +120,13 @@ const AIDashboard: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           symbol: selectedSymbol,
-          price: 45000, // Mock data - replace with real price
-          change_24h: 2.5,
-          volume: 2500000000,
-          rsi: 65,
-          macd: 'bullish'
+          price: priceOverride ?? livePrice,
+          change_24h: 2.5, // TODO: Replace with real 24h change if available
+          volume: 2500000000, // TODO: Replace with real volume if available
+          rsi: 65, // TODO: Replace with real RSI if available
+          macd: 'bullish' // TODO: Replace with real MACD if available
         })
       });
-      
       if (response.ok) {
         const data = await response.json();
         setMarketAnalysis(data.analysis);
@@ -187,16 +216,6 @@ const AIDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    // Auto-refresh AI analysis every 5 minutes
-    const interval = setInterval(() => {
-      analyzeMarket();
-      getInsights();
-    }, 300000);
-
-    return () => clearInterval(interval);
-  }, [selectedSymbol]);
-
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -229,7 +248,7 @@ const AIDashboard: React.FC = () => {
         {/* Action Buttons */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <button
-            onClick={analyzeMarket}
+            onClick={() => analyzeMarket()}
             disabled={loading}
             className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >

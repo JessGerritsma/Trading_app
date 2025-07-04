@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { Tab } from '@headlessui/react';
 
 interface AccountMetrics {
   pnl: number;
@@ -23,6 +24,8 @@ const DashboardPage: React.FC = () => {
   const [livePrices, setLivePrices] = useState<LivePrice[]>([]);
   const [wsConnected, setWsConnected] = useState(true);
   const wsRef = useRef<WebSocket | null>(null);
+  const [selectedPair, setSelectedPair] = useState<string>('');
+  const [priceHistory, setPriceHistory] = useState<Record<string, { timestamp: number, price: number|null }[]>>({});
 
   const fetchMetrics = async () => {
     setLoading(true);
@@ -59,12 +62,60 @@ const DashboardPage: React.FC = () => {
     return () => { ws.close(); };
   }, []);
 
+  // Update price history on new websocket data
+  useEffect(() => {
+    if (livePrices.length > 0) {
+      // Set default selected pair if not set
+      if (!selectedPair) setSelectedPair(livePrices[0].symbol);
+      setPriceHistory(prev => {
+        const updated = { ...prev };
+        livePrices.forEach(p => {
+          if (!updated[p.symbol]) updated[p.symbol] = [];
+          // Only add if price is not null
+          if (p.price !== null) {
+            updated[p.symbol] = [
+              ...updated[p.symbol],
+              { timestamp: Date.now(), price: p.price }
+            ].slice(-60); // Keep last 60 points (5 min at 5s interval)
+          }
+        });
+        return updated;
+      });
+    }
+  }, [livePrices]);
+
   return (
     <div className="space-y-6 rounded-2xl bg-gradient-to-br from-green-900 via-teal-900 to-green-800 p-6 shadow-xl">
       <h2 className="text-3xl font-bold mb-4 text-green-100">Account / Portfolio Metrics</h2>
       {/* Live Prices Table */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-2 text-blue-200">Live Prices (WebSocket)</h3>
+        {/* Tabs for pairs */}
+        <div className="mb-4">
+          <Tab.Group selectedIndex={livePrices.findIndex(p => p.symbol === selectedPair)} onChange={(i: number) => setSelectedPair(livePrices[i]?.symbol)}>
+            <Tab.List className="flex space-x-2">
+              {livePrices.map((p) => (
+                <Tab key={p.symbol} className={({ selected }: { selected: boolean }) => `px-4 py-2 rounded-t-lg ${selected ? 'bg-blue-600 text-white' : 'bg-green-800 text-blue-200'}`}>{p.symbol}</Tab>
+              ))}
+            </Tab.List>
+          </Tab.Group>
+        </div>
+        {/* Price history graph for selected pair */}
+        <div className="bg-white dark:bg-green-950 rounded-xl p-4 mb-4">
+          {selectedPair && priceHistory[selectedPair] && priceHistory[selectedPair].length > 1 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={priceHistory[selectedPair].map((pt, i) => ({ x: i + 1, price: pt.price }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#14532d" />
+                <XAxis dataKey="x" tick={false} />
+                <YAxis tick={{ fontSize: 12, fill: '#bbf7d0' }} domain={['auto', 'auto']} />
+                <Tooltip contentStyle={{ background: '#134e4a', color: '#bbf7d0', borderRadius: 12 }} />
+                <Line type="monotone" dataKey="price" stroke="#22d3ee" strokeWidth={3} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-green-200">Waiting for price history...</div>
+          )}
+        </div>
         {!wsConnected && (
           <div className="text-red-400 mb-2">Live price connection lost. Trying to reconnect...</div>
         )}
