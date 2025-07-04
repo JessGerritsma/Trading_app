@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
@@ -11,6 +11,7 @@ import subprocess
 import json
 import glob
 import datetime
+import asyncio
 
 # Import our new modules
 from src.core.config import settings
@@ -597,12 +598,15 @@ def append_chat_to_obsidian(user, ai, timestamp=None):
 
 # Trading pairs utilities
 DEFAULT_PAIRS = ['BTCUSDT', 'ETHUSDT', 'ADAUSDT']
+MAX_PAIRS = 10
 
 def get_trading_pairs():
     settings = load_settings()
     return settings.get('trading_pairs', DEFAULT_PAIRS)
 
 def set_trading_pairs(pairs):
+    if len(pairs) > MAX_PAIRS:
+        raise HTTPException(status_code=400, detail=f"Maximum {MAX_PAIRS} trading pairs allowed.")
     settings = load_settings()
     settings['trading_pairs'] = pairs
     save_settings(settings)
@@ -628,6 +632,8 @@ async def add_pair(pair: dict):
     pairs = get_trading_pairs()
     symbol = pair.get('symbol')
     if symbol and symbol not in pairs:
+        if len(pairs) >= MAX_PAIRS:
+            raise HTTPException(status_code=400, detail=f"Maximum {MAX_PAIRS} trading pairs allowed.")
         pairs.append(symbol)
         set_trading_pairs(pairs)
     return {"trading_pairs": pairs}
@@ -640,6 +646,66 @@ async def remove_pair(pair: dict):
         pairs.remove(symbol)
         set_trading_pairs(pairs)
     return {"trading_pairs": pairs}
+
+# --- WebSocket for live prices ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                pass
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/prices")
+async def websocket_prices(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Fetch latest prices for trading pairs in settings
+            pairs = get_trading_pairs()
+            prices = []
+            if not binance_client:
+                # If binance_client is not configured, send error for all pairs
+                for symbol in pairs:
+                    prices.append({
+                        "symbol": symbol,
+                        "price": None,
+                        "error": "Binance client not configured"
+                    })
+            else:
+                for symbol in pairs:
+                    try:
+                        ticker = binance_client.get_symbol_ticker(symbol=symbol)
+                        prices.append({
+                            "symbol": symbol,
+                            "price": float(ticker["price"]),
+                            "timestamp": ticker.get("time")
+                        })
+                    except Exception as e:
+                        prices.append({
+                            "symbol": symbol,
+                            "price": None,
+                            "error": str(e)
+                        })
+            await websocket.send_json({"prices": prices})
+            await asyncio.sleep(5)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception:
+        manager.disconnect(websocket)
 
 # Update chat endpoint to persist history
 @app.post("/chat")
