@@ -32,6 +32,8 @@ const defaultSettings = {
   risk_tolerance: 'Moderate',
 };
 
+const MAX_PAIRS = 10;
+
 const SettingsPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState('ai');
   const [settings, setSettings] = useState<any>(defaultSettings);
@@ -169,11 +171,16 @@ const SettingsPage: React.FC = () => {
                       onChange={e => setNewPair(e.target.value)}
                       placeholder="Add new pair (e.g. SOLUSDT)"
                       className="border px-2 py-1 rounded mr-2"
+                      disabled={tradingPairs.length >= MAX_PAIRS}
                     />
                     <button
                       onClick={addPair}
-                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                      disabled={tradingPairs.length >= MAX_PAIRS}
                     >Add</button>
+                    {tradingPairs.length >= MAX_PAIRS && (
+                      <span className="ml-4 text-red-600 font-semibold">Maximum {MAX_PAIRS} pairs reached.</span>
+                    )}
                   </div>
                   <ul className="space-y-2">
                     {tradingPairs.map(pair => (
