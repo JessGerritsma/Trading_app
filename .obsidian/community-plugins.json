@@ -2,5 +2,8 @@
   "dataview",
   "obsidian-git",
   "templater-obsidian",
-  "code-emitter"
+  "code-emitter",
+  "obsidian-kanban",
+  "obsidian-excalidraw-plugin",
+  "calendar"
 ]

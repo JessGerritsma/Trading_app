@@ -53,6 +53,15 @@ Trading_app/
 │   ├── backend/         # FastAPI core
 │   └── frontend/        # React client
 ├── obsidian/
+│   ├──00_Overview
+│   ├──01_Architecture
+│   ├──02_Strategies
+│   ├──03_Prompts
+│   ├──05_Code
+│   ├──06_Research
+│   ├──07_Ideas
+│   ├──08_Templates
+│   ├──09_Tasks
 │   ├──
 ├── packages/
 │   └── shared/          # Shared types/utilities
